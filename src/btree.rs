@@ -12,13 +12,6 @@ use std::path::Path;
 pub const MAX_BRANCHING_FACTOR: usize = 200;
 pub const NODE_KEYS_LIMIT: usize = MAX_BRANCHING_FACTOR - 1;
 
-/// BTree struct represents an on-disk B+tree.
-/// Each node is persisted in the table file, the leaf nodes contain the values.
-pub struct BTree {
-    pager: Pager,
-    b: usize,
-    wal: Wal,
-}
 
 /// BtreeBuilder is a Builder for the BTree struct.
 pub struct BTreeBuilder {
@@ -81,6 +74,14 @@ impl Default for BTreeBuilder {
     }
 }
 
+/// BTree struct represents an on-disk B+tree.
+/// Each node is persisted in the table file, the leaf nodes contain the values.
+pub struct BTree {
+    pager: Pager,
+    b: usize,
+    wal: Wal,
+}
+
 impl BTree {
     fn is_node_full(&self, node: &Node) -> Result<bool, Error> {
         match &node.node_type {
@@ -101,7 +102,7 @@ impl BTree {
 
     /// insert a key value pair possibly splitting nodes along the way.
     pub fn insert(&mut self, kv: KeyValuePair) -> Result<(), Error> {
-        let root_offset = self.wal.get_root()?;
+        let root_offset = self.wal.get_root_offset()?;
         let root_page = self.pager.get_page(&root_offset)?;
         let new_root_offset: Offset;
         let mut new_root: Node;
@@ -161,7 +162,7 @@ impl BTree {
                 let mut child = Node::try_from(child_page)?;
                 // Copy each branching-node on the root-to-leaf walk.
                 // write_page appends the given page to the db file thus creating a new node.
-                let new_child_offset = self.pager.write_page(Page::try_from(&child)?)?;
+                let new_child_offset: Offset = self.pager.write_page(Page::try_from(&child)?)?;
                 // Assign copied child at the proper place.
                 children[idx] = new_child_offset.to_owned();
                 if self.is_node_full(&child)? {
@@ -198,7 +199,7 @@ impl BTree {
 
     /// search searches for a specific key in the BTree.
     pub fn search(&mut self, key: String) -> Result<KeyValuePair, Error> {
-        let root_offset = self.wal.get_root()?;
+        let root_offset = self.wal.get_root_offset()?;
         let root_page = self.pager.get_page(&root_offset)?;
         let root = Node::try_from(root_page)?;
         self.search_node(root, &key)
@@ -231,7 +232,7 @@ impl BTree {
 
     /// delete deletes a given key from the tree.
     pub fn delete(&mut self, key: Key) -> Result<(), Error> {
-        let root_offset = self.wal.get_root()?;
+        let root_offset = self.wal.get_root_offset()?;
         let root_page = self.pager.get_page(&root_offset)?;
         // Shadow the new root and rewrite it.
         let mut new_root = Node::try_from(root_page)?;
@@ -408,7 +409,7 @@ impl BTree {
     /// print is a helper for recursively printing the tree.
     pub fn print(&mut self) -> Result<(), Error> {
         println!();
-        let root_offset = self.wal.get_root()?;
+        let root_offset = self.wal.get_root_offset()?;
         self.print_sub_tree("".to_string(), root_offset)
     }
 }

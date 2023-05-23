@@ -43,6 +43,7 @@ impl Pager {
     }
 
     pub fn write_page_at_offset(&mut self, page: Page, offset: &Offset) -> Result<(), Error> {
+        // print!("page in bytes: {}", page.get_data());
         self.file.seek(SeekFrom::Start(offset.0 as u64))?;
         self.file.write_all(&page.get_data())?;
         Ok(())

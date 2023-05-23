@@ -17,12 +17,12 @@ impl Wal {
             .read(true)
             .write(true)
             .truncate(true)
-            .open(parent_directoy.join("wal"))?;
+            .open(parent_directoy.join("wal-rust"))?;
 
         Ok(Self { file: fd })
     }
 
-    pub fn get_root(&mut self) -> Result<Offset, Error> {
+    pub fn get_root_offset(&mut self) -> Result<Offset, Error> {
         let mut buff: [u8; PTR_SIZE] = [0x00; PTR_SIZE];
         let file_len = self.file.seek(SeekFrom::End(0))? as usize;
         let mut root_offset: usize = 0;
