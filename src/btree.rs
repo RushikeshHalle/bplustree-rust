@@ -83,6 +83,10 @@ pub struct BTree {
 }
 
 impl BTree {
+    pub fn getTotalWriteTime(&mut self) -> u128{
+        return self.pager.getTotalWriteTime();
+    }
+
     fn is_node_full(&self, node: &Node) -> Result<bool, Error> {
         match &node.node_type {
             NodeType::Leaf(pairs) => Ok(pairs.len() == (2 * self.b - 1)),

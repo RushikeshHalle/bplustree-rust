@@ -29,6 +29,7 @@ fn main() ->  Result<(), Error> {
         println!("insertion:");
         println!("elapsed_wall_clock_time : {:?}", elapsed_wall_clock_time);
         println!("elapsed_cpu_clock_time  : {:?}", elapsed_cpu_clock_time);
+        println!("totalWriteTime          : {:?}s", (btree.getTotalWriteTime() as c_double)/100000000.0);
     }
     {
         let wall_clock_stamp_before = SystemTime::now();

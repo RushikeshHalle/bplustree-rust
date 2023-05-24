@@ -6,10 +6,13 @@ use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
+use std::time::Duration;
+use cpu_time::ThreadTime;
 
 pub struct Pager {
     file: File,
     curser: usize,
+    stopWatchAcc: u128,
 }
 
 impl Pager {
@@ -24,6 +27,7 @@ impl Pager {
         Ok(Pager {
             file: fd,
             curser: 0,
+            stopWatchAcc: 0
         })
     }
 
@@ -35,8 +39,14 @@ impl Pager {
     }
 
     pub fn write_page(&mut self, page: Page) -> Result<Offset, Error> {
+        let cpu_clock_stamp_before = ThreadTime::now();
+
         self.file.seek(SeekFrom::Start(self.curser as u64))?;
         self.file.write_all(&page.get_data())?;
+
+        let elapsed_cpu_clock_time: Duration = cpu_clock_stamp_before.elapsed();
+
+        self.stopWatchAcc+= elapsed_cpu_clock_time.as_nanos();
         let res = Offset(self.curser);
         self.curser += PAGE_SIZE;
         Ok(res)
@@ -44,8 +54,18 @@ impl Pager {
 
     pub fn write_page_at_offset(&mut self, page: Page, offset: &Offset) -> Result<(), Error> {
         // print!("page in bytes: {}", page.get_data());
+        let cpu_clock_stamp_before = ThreadTime::now();
+
         self.file.seek(SeekFrom::Start(offset.0 as u64))?;
         self.file.write_all(&page.get_data())?;
+
+        let elapsed_cpu_clock_time: Duration = cpu_clock_stamp_before.elapsed();
+        self.stopWatchAcc+= elapsed_cpu_clock_time.as_nanos();
+
         Ok(())
+    }
+
+    pub fn getTotalWriteTime(&mut self) -> u128{
+        return self.stopWatchAcc;
     }
 }
