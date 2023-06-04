@@ -1,6 +1,9 @@
 use crate::error::Error;
 use crate::node_type::{Key, KeyValuePair, NodeType, Offset};
 use crate::page::Page;
+use arrayvec::ArrayVec;
+use crate::btree::MAX_BRANCHING_FACTOR;
+
 use crate::page_layout::{
     FromByte, INTERNAL_NODE_HEADER_SIZE, INTERNAL_NODE_NUM_CHILDREN_OFFSET, IS_ROOT_OFFSET,
     KEY_SIZE, LEAF_NODE_HEADER_SIZE, LEAF_NODE_NUM_PAIRS_OFFSET, NODE_TYPE_OFFSET,
@@ -17,6 +20,21 @@ pub struct Node {
     pub parent_offset: Option<Offset>,
 }
 
+fn arrayvec_split_off<T, const N: usize>(array_vec: &mut ArrayVec<T, N>, split_idx: usize) -> ArrayVec<T, N> {
+    let mut split_elements = ArrayVec::new();
+
+    if split_idx >= array_vec.len() {
+        return split_elements;
+    }
+
+    for _ in split_idx..array_vec.len() {
+        split_elements.push(array_vec.pop().unwrap());
+    }
+
+    split_elements.reverse();
+    split_elements
+}
+
 // Node represents a node in the B-Tree.
 impl Node {
     pub fn new(node_type: NodeType, is_root: bool, parent_offset: Option<Offset>) -> Node {
@@ -27,6 +45,8 @@ impl Node {
         }
     }
 
+    
+
     /// split creates a sibling node from a given node by splitting the node in two around a median.
     /// split will split the child at b leaving the [0, b-1] keys
     /// while moving the set of [b, 2b-1] keys to the sibling.
@@ -34,11 +54,14 @@ impl Node {
         match self.node_type {
             NodeType::Internal(ref mut children, ref mut keys) => {
                 // Populate siblings keys.
-                let mut sibling_keys = keys.split_off(b - 1);
+                // let mut sibling_keys = keys.split_off(b - 1);
+                let mut sibling_keys = arrayvec_split_off(keys, b-1);;
+                
                 // Pop median key - to be added to the parent..
                 let median_key = sibling_keys.remove(0);
                 // Populate siblings children.
-                let sibling_children = children.split_off(b);
+                let sibling_children = arrayvec_split_off(children, b);
+                // let sibling_children = children.split_off(b);
                 Ok((
                     median_key,
                     Node::new(
@@ -50,7 +73,8 @@ impl Node {
             }
             NodeType::Leaf(ref mut pairs) => {
                 // Populate siblings pairs.
-                let sibling_pairs = pairs.split_off(b);
+                // let sibling_pairs = pairs.split_off(b);
+                let sibling_pairs = arrayvec_split_off(pairs, b);
                 // Pop median key.
                 let median_pair = pairs.get(b - 1).ok_or(Error::UnexpectedError)?.clone();
 

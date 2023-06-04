@@ -3,6 +3,9 @@ use crate::page_layout::PTR_SIZE;
 use std::cmp::{Eq, Ord, Ordering, PartialOrd};
 use std::convert::From;
 use std::convert::TryFrom;
+use arrayvec::ArrayVec;
+use crate::btree::MAX_BRANCHING_FACTOR;
+
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct Offset(pub usize);
@@ -53,10 +56,10 @@ impl KeyValuePair {
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum NodeType {
     /// Internal nodes contain a vector of pointers to their children and a vector of keys.
-    Internal(Vec<Offset>, Vec<Key>),
+    Internal(ArrayVec<Offset,MAX_BRANCHING_FACTOR>, ArrayVec<Key,MAX_BRANCHING_FACTOR>),
 
     /// Leaf nodes contain a vector of Keys and values.
-    Leaf(Vec<KeyValuePair>),
+    Leaf(ArrayVec<KeyValuePair,MAX_BRANCHING_FACTOR>),
 
     Unexpected,
 }
@@ -65,8 +68,8 @@ pub enum NodeType {
 impl From<u8> for NodeType {
     fn from(orig: u8) -> NodeType {
         match orig {
-            0x01 => NodeType::Internal(Vec::<Offset>::new(), Vec::<Key>::new()),
-            0x02 => NodeType::Leaf(Vec::<KeyValuePair>::new()),
+            0x01 => NodeType::Internal(ArrayVec::<Offset,MAX_BRANCHING_FACTOR>::new(), ArrayVec::<Key,MAX_BRANCHING_FACTOR>::new()),
+            0x02 => NodeType::Leaf(ArrayVec::<KeyValuePair,MAX_BRANCHING_FACTOR>::new()),
             _ => NodeType::Unexpected,
         }
     }

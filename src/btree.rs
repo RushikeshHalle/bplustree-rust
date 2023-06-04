@@ -6,7 +6,7 @@ use crate::pager::Pager;
 use crate::wal::Wal;
 use std::convert::TryFrom;
 use std::path::Path;
-
+use arrayvec::ArrayVec;
 /// B+Tree properties.
 pub const MAX_BRANCHING_FACTOR: usize = 200;
 pub const NODE_KEYS_LIMIT: usize = MAX_BRANCHING_FACTOR - 1;
@@ -48,7 +48,7 @@ impl BTreeBuilder {
         }
 
         let mut pager = Pager::new(self.path)?;
-        let root = Node::new(NodeType::Leaf(vec![]), true, None);
+        let root = Node::new(NodeType::Leaf(ArrayVec::<KeyValuePair,MAX_BRANCHING_FACTOR>::new()), true, None);
         let root_offset = pager.write_page(Page::try_from(&root)?)?;
         let parent_directory = self.path.parent().unwrap_or_else(|| Path::new("/tmp"));
         let mut wal = Wal::new(parent_directory.to_path_buf())?;
@@ -100,7 +100,7 @@ impl BTree {
         let mut root = Node::try_from(root_page)?;
         if self.is_node_full(&root)? {
             // split the root creating a new root and child nodes along the way.
-            new_root = Node::new(NodeType::Internal(vec![], vec![]), true, None);
+            new_root = Node::new(NodeType::Internal(ArrayVec::<Offset, MAX_BRANCHING_FACTOR>::new(), ArrayVec::<Key, MAX_BRANCHING_FACTOR>::new()), true, None);
             // write the new root to disk to aquire an offset for the new root.
             new_root_offset = self.pager.write_page(Page::try_from(&new_root)?)?;
             // set the old roots parent to the new root.
@@ -113,8 +113,16 @@ impl BTree {
             // write the newly created sibling to disk.
             let sibling_offset = self.pager.write_page(Page::try_from(&sibling)?)?;
             // update the new root with its children and key.
-            new_root.node_type =
-                NodeType::Internal(vec![old_root_offset, sibling_offset], vec![median]);
+            let mut offsets = ::<Offset, MAX_BRANCHING_FACTOR>::new();
+            let mut keys = ArrayVec::<Key, MAX_BRANCHING_FACTOR>::new();
+            offsets.push(old_root_offset);
+            offsets.push(sibling_offset);
+            keys.push(median);
+            new_root.node_type =  NodeType::Internal(offsets, keys);
+            // Populate the ArrayVec with the desired values
+            
+
+            // new_root.node_type = NodeType::Internal(vec![old_root_offset, sibling_offset], vec![median]);
             // write the new_root to disk.
             self.pager
                 .write_page_at_offset(Page::try_from(&new_root)?, &new_root_offset)?;
