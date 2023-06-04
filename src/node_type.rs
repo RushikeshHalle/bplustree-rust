@@ -3,6 +3,8 @@ use crate::page_layout::PTR_SIZE;
 use std::cmp::{Eq, Ord, Ordering, PartialOrd};
 use std::convert::From;
 use std::convert::TryFrom;
+use crate::btree::MAX_BRANCHING_FACTOR;
+
 
 #[derive(Clone, Eq, PartialEq, Debug)]
 pub struct Offset(pub usize);
@@ -65,8 +67,8 @@ pub enum NodeType {
 impl From<u8> for NodeType {
     fn from(orig: u8) -> NodeType {
         match orig {
-            0x01 => NodeType::Internal(Vec::<Offset>::new(), Vec::<Key>::new()),
-            0x02 => NodeType::Leaf(Vec::<KeyValuePair>::new()),
+            0x01 => NodeType::Internal(Vec::<Offset>::with_capacity(MAX_BRANCHING_FACTOR), Vec::<Key>::with_capacity(MAX_BRANCHING_FACTOR)),
+            0x02 => NodeType::Leaf(Vec::<KeyValuePair>::with_capacity(MAX_BRANCHING_FACTOR)),
             _ => NodeType::Unexpected,
         }
     }
