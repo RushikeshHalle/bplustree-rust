@@ -10,10 +10,10 @@ uuid = { version = "0.8", features = ["serde", "v4"] }
 memmap = "0.7.0"
 cpu-time = "1.0.0"
 #jemallocator = "0.5.0"
-tikv-jemallocator = "0.5.0"
+#tikv-jemallocator = "0.5.0"
 
 [profile.release]
 debug = true
-#lto = true
-#codegen-units = 1
+lto = true
+codegen-units = 1
 #rustflags = ["-C", "target-cpu=native"]
