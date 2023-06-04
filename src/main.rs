@@ -1,10 +1,10 @@
 //--------------tikv-jemalloc--------------//
-#[cfg(not(target_env = "msvc"))]
-use tikv_jemallocator::Jemalloc;
+// #[cfg(not(target_env = "msvc"))]
+// use tikv_jemallocator::Jemalloc;
 
-#[cfg(not(target_env = "msvc"))]
-#[global_allocator]
-static GLOBAL: Jemalloc = Jemalloc;
+// #[cfg(not(target_env = "msvc"))]
+// #[global_allocator]
+// static GLOBAL: Jemalloc = Jemalloc;
 
 //--------mimalloc---------//
 //use mimalloc::MiMalloc;
@@ -20,12 +20,14 @@ static GLOBAL: Jemalloc = Jemalloc;
 //#[global_allocator]
 //static GLOBAL: Jemalloc = Jemalloc;
 //
+mod stopwatch;
+
 use btree::error::Error;
-use btree::btree::{ BTreeBuilder};
+use btree::btree::BTreeBuilder;
 use std::path::Path;
 use btree::node_type:: KeyValuePair ;
-use cpu_time::{ProcessTime,ThreadTime};
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
+use stopwatch::Stopwatch;
 
 fn main() ->  Result<(), Error> {
     // Initialize a new BTree;
@@ -36,41 +38,31 @@ fn main() ->  Result<(), Error> {
         .b_parameter(100)
         .build()?;
     {
-        let wall_clock_stamp_before = SystemTime::now();
-        let cpu_clock_stamp_before = ThreadTime::now();
+        let mut stopwatch = Stopwatch::new();
+        stopwatch.start();
         
-        let mut result = ();
         for i in 0..=1000000 {
-            result = btree.insert(KeyValuePair::new(format!("k{}", i), format!("v{}", i))).unwrap();
+            let _ = btree.insert(KeyValuePair::new(format!("k{}", i), format!("v{}", i))).unwrap();
         }
 
-        assert_eq!(result, ());
-
-        let elapsed_wall_clock_time: Duration = wall_clock_stamp_before.elapsed().unwrap();
-        let elapsed_cpu_clock_time: Duration = cpu_clock_stamp_before.elapsed();
+        stopwatch.stop();
+        let elapsed_cpu_clock_time: Duration = stopwatch.get_total_time_as_duration();
         println!("insertion:");
-        println!("elapsed_wall_clock_time : {:?}", elapsed_wall_clock_time);
-        println!("elapsed_cpu_clock_time  : {:?}", elapsed_cpu_clock_time);
-        println!("totalWriteTime          : {:?}s", (btree.getTotalWriteTime() as f64)/1000000000.0);
+        println!("elapsed_thread_clock_time  : {:?}", elapsed_cpu_clock_time);
+        // println!("totalWriteTime          : {:?}s", (btree.getTotalWriteTime() as f64)/1000000000.0);
     }
     {
-        let wall_clock_stamp_before = SystemTime::now();
-        let cpu_clock_stamp_before = ThreadTime::now();
+        let mut stopwatch = Stopwatch::new();
+        stopwatch.start();
         
-        let mut result = "v0";
-        let mut temp;
         for i in 0..=1000000 {
-            temp = btree.search(format!("k{}", i)).unwrap();
-            result=&temp.value; 
+            let _ = btree.search(format!("k{}", i)).unwrap();
         }
 
-        assert_eq!(result, "v1000000");
-
-        let elapsed_wall_clock_time: Duration = wall_clock_stamp_before.elapsed().unwrap();
-        let elapsed_cpu_clock_time: Duration = cpu_clock_stamp_before.elapsed();
+        stopwatch.stop();
+        let elapsed_cpu_clock_time: Duration = stopwatch.get_total_time_as_duration();
         println!("search:");
-        println!("elapsed_wall_clock_time : {:?}", elapsed_wall_clock_time);
-        println!("elapsed_cpu_clock_time  : {:?}", elapsed_cpu_clock_time);
+        println!("elapsed_thread_clock_time  : {:?}", elapsed_cpu_clock_time);
     }
 
     Ok(())
