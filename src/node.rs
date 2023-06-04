@@ -76,12 +76,11 @@ impl TryFrom<Page> for Node {
         let raw = page.get_data();
         let node_type = NodeType::from(raw[NODE_TYPE_OFFSET]);
         let is_root = raw[IS_ROOT_OFFSET].from_byte();
-        let parent_offset: Option<Offset>;
-        if is_root {
-            parent_offset = None;
+        let parent_offset: Option<Offset> = if is_root {
+            None
         } else {
-            parent_offset = Some(Offset(page.get_value_from_offset(PARENT_POINTER_OFFSET)?));
-        }
+            Some(Offset(page.get_value_from_offset(PARENT_POINTER_OFFSET)?))
+        };
 
         match node_type {
             NodeType::Internal(mut children, mut keys) => {
@@ -181,7 +180,7 @@ mod tests {
 
         let node = Node::try_from(Page::new(page))?;
 
-        assert_eq!(node.is_root, true);
+        assert!(node.is_root);
         Ok(())
     }
 

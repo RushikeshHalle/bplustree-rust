@@ -23,6 +23,6 @@ impl Stopwatch{
     }
 
     pub fn get_total_time_as_duration(&self) -> Duration{
-        return self.total_time;
+        self.total_time
     }
 }

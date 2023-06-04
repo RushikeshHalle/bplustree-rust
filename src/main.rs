@@ -42,7 +42,7 @@ fn main() ->  Result<(), Error> {
         stopwatch.start();
         
         for i in 0..=1000000 {
-            let _ = btree.insert(KeyValuePair::new(format!("k{}", i), format!("v{}", i))).unwrap();
+            btree.insert(KeyValuePair::new(format!("k{}", i), format!("v{}", i))).unwrap();
         }
 
         stopwatch.stop();
