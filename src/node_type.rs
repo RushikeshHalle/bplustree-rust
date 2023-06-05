@@ -51,6 +51,7 @@ impl KeyValuePair {
     }
 }
 
+
 // NodeType Represents different node types in the BTree.
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum NodeType {
@@ -63,9 +64,14 @@ pub enum NodeType {
     Unexpected,
 }
 
+pub static mut TOTAL_ALLOC_CALLS: u32 = 0;
+
 // Converts a byte to a NodeType.
 impl From<u8> for NodeType {
     fn from(orig: u8) -> NodeType {
+        unsafe {
+            TOTAL_ALLOC_CALLS += 1;
+        }
         match orig {
             0x01 => NodeType::Internal(Vec::<Offset>::with_capacity(MAX_BRANCHING_FACTOR), Vec::<Key>::with_capacity(MAX_BRANCHING_FACTOR)),
             0x02 => NodeType::Leaf(Vec::<KeyValuePair>::with_capacity(MAX_BRANCHING_FACTOR)),

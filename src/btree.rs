@@ -48,7 +48,7 @@ impl BTreeBuilder {
         }
 
         let mut pager = Pager::new(self.path)?;
-        let root = Node::new(NodeType::Leaf(Vec::<KeyValuePair>::with_capacity(MAX_BRANCHING_FACTOR)), true, None);
+        let root = Node::new(NodeType::from(0x02), true, None);
         let root_offset = pager.write_page(Page::try_from(&root)?)?;
         let parent_directory = self.path.parent().unwrap_or_else(|| Path::new("/tmp"));
         let mut wal = Wal::new(parent_directory.to_path_buf())?;
@@ -100,7 +100,7 @@ impl BTree {
         let mut root = Node::try_from(root_page)?;
         if self.is_node_full(&root)? {
             // split the root creating a new root and child nodes along the way.
-            new_root = Node::new(NodeType::Internal(Vec::<Offset>::with_capacity(MAX_BRANCHING_FACTOR),  Vec::<Key>::with_capacity(MAX_BRANCHING_FACTOR)), true, None);
+            new_root = Node::new(NodeType::from(0x01), true, None);
             // write the new root to disk to aquire an offset for the new root.
             new_root_offset = self.pager.write_page(Page::try_from(&new_root)?)?;
             // set the old roots parent to the new root.
@@ -112,14 +112,13 @@ impl BTree {
             let old_root_offset = self.pager.write_page(Page::try_from(&root)?)?;
             // write the newly created sibling to disk.
             let sibling_offset = self.pager.write_page(Page::try_from(&sibling)?)?;
-            // update the new root with its children and key.
-            let mut offsets = Vec::<Offset>::with_capacity(MAX_BRANCHING_FACTOR);
-            let mut keys = Vec::<Key>::with_capacity(MAX_BRANCHING_FACTOR);
-            offsets.push(old_root_offset);
-            offsets.push(sibling_offset);
-            keys.push(median);
-            new_root.node_type =
-                NodeType::Internal(offsets, keys);
+            
+            if let NodeType::Internal(ref mut offsets,ref mut keys) = new_root.node_type {
+                offsets.push(old_root_offset);
+                offsets.push(sibling_offset);
+                keys.push(median);
+            }
+            
             // write the new_root to disk.
             self.pager
                 .write_page_at_offset(Page::try_from(&new_root)?, &new_root_offset)?;
